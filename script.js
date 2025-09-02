@@ -15,6 +15,8 @@ let timerDuration = 0;
 let timerRemaining = 0;
 let timerPaused = true;
 let weatherAnimation = null;
+let ytPlayer = null;
+let currentTrackIndex = 0;
 
 // DOM Elements
 const weatherIcon = document.getElementById('weather-icon');
@@ -54,7 +56,8 @@ const playlists = {
             "Stronger - Kanye West",
             "Can't Hold Us - Macklemore & Ryan Lewis",
             "Till I Collapse - Eminem",
-            "Work B**ch - Britney Spears"
+            "Work B**ch - Britney Spears",
+            "Channa Mereya"
         ]
     },
     creative: {
@@ -693,6 +696,62 @@ function saveTasks() {
     localStorage.setItem('tempus_tasks', JSON.stringify(tasks));
 }
 
+// Helper: Search YouTube for a track and get the video ID
+async function getYouTubeVideoId(trackName) {
+    console.log("Searching YouTube for:", trackName);
+    const apiKey = 'AIzaSyDZexXoAIKtQoaocNsC9NGRltqOnL6HJxE';
+    // Add "no copyright music" to the search query
+    const query = `${trackName}no copyright music`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoEmbeddable=true&key=${apiKey}&maxResults=5`;
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log("YouTube API response:", data);
+    if (data.items && data.items.length > 0) {
+        // Return the first embeddable video
+        for (const item of data.items) {
+            if (item.id && item.id.videoId) {
+                return item.id.videoId;
+            }
+        }
+    }
+    return null;
+}
+
+// Initialize YouTube Player
+function onYouTubeIframeAPIReady() {
+    ytPlayer = new YT.Player('youtube-player', {
+        height: '1',
+        width: '1',
+        events: {
+            'onReady': () => {console.log('YouTube Player Ready');},
+            'onStateChange': onPlayerStateChange
+        }
+    });
+}
+
+function onPlayerStateChange(event) {
+    // Auto-play next track when current ends
+    if (event.data === YT.PlayerState.ENDED) {
+        playNextTrack();
+    }
+}
+
+// Play a track by index
+async function playTrack(index) {
+    if (!currentPlaylist) return;
+    currentTrackIndex = index;
+    const trackName = currentPlaylist.tracks[index];
+    const videoId = await getYouTubeVideoId(trackName);
+    if (videoId && ytPlayer) {
+        ytPlayer.loadVideoById(videoId);
+        ytPlayer.playVideo();
+        isPlaying = true;
+        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        playlistTitle.textContent = `${currentPlaylist.title} - ${trackName}`;
+    }
+}
+
+// Override openTaskModal to set currentPlaylist
 function openTaskModal(task) {
     currentTask = task;
     modalTaskTitle.textContent = task.title;
@@ -703,25 +762,20 @@ function openTaskModal(task) {
     updateTimerDisplay();
     
     // Set up playlist based on task type
-    let playlist;
     switch(task.type) {
-        case 'workout':
-            playlist = playlists.workout;
-            break;
-        case 'creative':
-            playlist = playlists.creative;
-            break;
+        case 'workout': currentPlaylist = playlists.workout; break;
+        case 'creative': currentPlaylist = playlists.creative; break;
         case 'learning':
-        case 'administrative':
-            playlist = playlists.focus;
-            break;
-        default:
-            playlist = playlists.relax;
+        case 'administrative': currentPlaylist = playlists.focus; break;
+        default: currentPlaylist = playlists.relax;
     }
     
-    playlistCover.textContent = playlist.cover;
-    playlistTitle.textContent = playlist.title;
-    playlistDescription.textContent = playlist.description;
+    playlistCover.textContent = currentPlaylist.cover;
+    playlistTitle.textContent = currentPlaylist.title;
+    playlistDescription.textContent = currentPlaylist.description;
+    
+    currentTrackIndex = 0;
+    playTrack(currentTrackIndex);
     
     // Show modal
     modal.style.display = 'flex';
@@ -770,27 +824,27 @@ function stopTimer() {
 }
 
 function togglePlayPause() {
+    if (!ytPlayer) return;
     isPlaying = !isPlaying;
-    
     if (isPlaying) {
+        ytPlayer.playVideo();
         playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        // In a real app, you would start playing music here
-        // For this demo, we'll just simulate it
-        console.log('Playing playlist:', currentPlaylist.title);
     } else {
+        ytPlayer.pauseVideo();
         playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-        console.log('Playback paused');
     }
 }
 
 function playPreviousTrack() {
-    console.log('Playing previous track');
-    // In a real app, you would implement track navigation
+    if (!currentPlaylist) return;
+    currentTrackIndex = (currentTrackIndex - 1 + currentPlaylist.tracks.length) % currentPlaylist.tracks.length;
+    playTrack(currentTrackIndex);
 }
 
 function playNextTrack() {
-    console.log('Playing next track');
-    // In a real app, you would implement track navigation
+    if (!currentPlaylist) return;
+    currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.tracks.length;
+    playTrack(currentTrackIndex);
 }
 
 // Update task scores periodically (every hour) to reflect changing conditions

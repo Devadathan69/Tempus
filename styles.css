@@ -625,6 +625,16 @@ button:hover {
     pointer-events: none;
 }
 
+#youtube-player {
+  width: 1px !important;
+  height: 1px !important;
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 @media (max-width: 768px) {
     .dashboard {
         grid-template-columns: 1fr;

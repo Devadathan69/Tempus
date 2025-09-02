@@ -1,0 +1,2 @@
+export const OPENWEATHER_API_KEY = '46611c7c5329683082d7027c4b5a856e';
+export const YOUTUBE_API_KEY = 'AIzaSyDZexXoAIKtQoaocNsC9NGRltqOnL6HJxE';
