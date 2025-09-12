@@ -55,6 +55,50 @@
             </div>
         </div>
         
+        <div class="tasks-container">
+            <div class="tasks-header">
+                <h2><i class="fas fa-list-check"></i> Your Tasks</h2>
+                <div class="sort-options">
+                    <span>Sort by:</span>
+                    <select id="sort-tasks">
+                        <option value="score">Do-ability Score</option>
+                        <option value="added">Date Added</option>
+                        <option value="type">Task Type</option>
+                    </select>
+                </div>
+            </div>
+            <div class="task-list" id="task-list">
+                <!-- Example task item structure for reference -->
+                <!--
+                <div class="task-item focus fade-in">
+                    <div class="task-info">
+                        <div class="task-title">
+                            <i class="fas fa-graduation-cap"></i>
+                            Focus Task Example
+                        </div>
+                        <div class="task-meta">
+                            <span>focus</span>
+                            <span>30 min</span>
+                            <span>Added: 2025-09-11</span>
+                        </div>
+                    </div>
+                    <div class="task-score priority-medium">50</div>
+                    <div class="task-actions">
+                        <button class="task-btn btn-start" data-id="123">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="task-btn btn-complete" data-id="123">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="task-btn btn-delete" data-id="123">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                -->
+            </div>
+        </div>
+        
         <div class="task-form">
             <h2><i class="fas fa-plus-circle"></i> Add New Task</h2>
             <form id="add-task-form">
@@ -68,8 +112,8 @@
                         <option value="indoor">Indoor Task</option>
                         <option value="outdoor">Outdoor Task</option>
                         <option value="creative">Creative Work</option>
-                        <option value="administrative">Administrative</option>
-                        <option value="errand">Errand</option>
+                        <option value="relax">Relax</option>
+                        <option value="focus">Focus</option>
                         <option value="workout">Workout</option>
                         <option value="learning">Learning</option>
                         <option value="social">Social</option>
@@ -87,20 +131,13 @@
             </form>
         </div>
         
-        <div class="tasks-container">
-            <div class="tasks-header">
-                <h2><i class="fas fa-list-check"></i> Your Tasks</h2>
-                <div class="sort-options">
-                    <span>Sort by:</span>
-                    <select id="sort-tasks">
-                        <option value="score">Do-ability Score</option>
-                        <option value="added">Date Added</option>
-                        <option value="type">Task Type</option>
-                    </select>
-                </div>
+        <!-- Completed Tasks Tab -->
+        <div class="completed-tasks-container">
+            <div class="completed-tasks-header">
+                <h2><i class="fas fa-check-circle"></i> Completed Tasks</h2>
             </div>
-            <div class="task-list" id="task-list">
-                <div class="loading">Loading your tasks...</div>
+            <div class="completed-task-list" id="completed-task-list">
+                <div class="loading">No tasks completed yet.</div>
             </div>
         </div>
         
