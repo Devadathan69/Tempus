@@ -89,11 +89,12 @@ const playlists = {
         description: "Relaxing music for downtime",
         cover: "😌",
         tracks: [
-            "Dreams - Fleetwood Mac",
-            "Landslide - Fleetwood Mac",
-            "Banana Pancakes - Jack Johnson",
-            "Three Little Birds - Bob Marley",
-            "Island in the Sun - Weezer"
+            "Baarishein - Anuv Jain",
+            "Arz kiya Hai - Anuv Jain",
+            "Cherathukal (From Kumbalangi Nights)",
+            "Blue - young kai",
+            "Finding Her",
+            "Jhol x Jhol | Full Version | Remix Song | Classic Version"
         ]
     }
 };
@@ -568,18 +569,13 @@ function renderTasks() {
         taskList.innerHTML = '<div class="loading">No tasks yet. Add one above!</div>';
         return;
     }
-    
-    // Filter out completed tasks and sort based on selection
     const incompleteTasks = tasks.filter(task => !task.completed);
-    
     if (incompleteTasks.length === 0) {
         taskList.innerHTML = '<div class="loading">All tasks completed! Add a new one.</div>';
         return;
     }
-    
     let sortedTasks = [...incompleteTasks];
     const sortValue = sortSelect.value;
-    
     if (sortValue === 'score') {
         sortedTasks.sort((a, b) => b.score - a.score);
     } else if (sortValue === 'added') {
@@ -587,19 +583,17 @@ function renderTasks() {
     } else if (sortValue === 'type') {
         sortedTasks.sort((a, b) => a.type.localeCompare(b.type));
     }
-    
     taskList.innerHTML = '';
     sortedTasks.forEach(task => {
         const taskEl = document.createElement('div');
         taskEl.className = `task-item ${task.type} fade-in`;
-        
         let priorityClass = 'priority-medium';
         if (task.score >= 70) priorityClass = 'priority-high';
         else if (task.score <= 30) priorityClass = 'priority-low';
-        
         const addedDate = new Date(task.added);
         const formattedDate = addedDate.toLocaleDateString();
-        
+        // Show start button for workout, focus, relax, learning
+        const showStartBtn = ['workout', 'focus', 'learning','relax'].includes(task.type);
         taskEl.innerHTML = `
             <div class="task-info">
                 <div class="task-title">
@@ -615,7 +609,7 @@ function renderTasks() {
             </div>
             <div class="task-score ${priorityClass}">${Math.round(task.score)}</div>
             <div class="task-actions">
-                ${task.type === 'workout' ? `
+                ${showStartBtn ? `
                     <button class="task-btn btn-start" data-id="${task.id}">
                         <i class="fas fa-play"></i>
                     </button>
@@ -628,7 +622,6 @@ function renderTasks() {
                 </button>
             </div>
         `;
-        
         taskList.appendChild(taskEl);
     });
     
@@ -659,31 +652,33 @@ function renderTasks() {
     });
 }
 
+// Update getTaskIcon for new types if needed
 function getTaskIcon(type) {
     const icons = {
         'outdoor': 'fa-tree',
         'indoor': 'fa-home',
         'creative': 'fa-paint-brush',
-        'administrative': 'fa-file-alt',
-        'errand': 'fa-shopping-cart',
+        'focus': 'fa-brain',
         'workout': 'fa-dumbbell',
         'learning': 'fa-graduation-cap',
+        'relax': 'fa-bed',
         'social': 'fa-users'
     };
-    
     return icons[type] || 'fa-tasks';
 }
 
 function completeTask(taskId) {
     tasks = tasks.map(task => {
         if (task.id === taskId) {
-            return { ...task, completed: true };
+            return { ...task, completed: true, completedAt: new Date().toISOString() };
         }
         return task;
     });
     
     saveTasks();
     renderTasks();
+    renderCompletedTasks();
+    showCongratsAnimation && showCongratsAnimation();
 }
 
 function deleteTask(taskId) {
@@ -694,6 +689,11 @@ function deleteTask(taskId) {
 
 function saveTasks() {
     localStorage.setItem('tempus_tasks', JSON.stringify(tasks));
+    // Store completed and not completed separately
+    const completed = tasks.filter(t => t.completed);
+    const notCompleted = tasks.filter(t => !t.completed);
+    localStorage.setItem('tempus_tasks_completed', JSON.stringify(completed));
+    localStorage.setItem('tempus_tasks_not_completed', JSON.stringify(notCompleted));
 }
 
 // Helper: Search YouTube for a track and get the video ID
@@ -751,35 +751,93 @@ async function playTrack(index) {
     }
 }
 
-// Override openTaskModal to set currentPlaylist
+// Override openTaskModal to set currentPlaylist but DO NOT auto-play
 function openTaskModal(task) {
     currentTask = task;
     modalTaskTitle.textContent = task.title;
-    
+
     // Set up timer
     timerDuration = task.duration * 60; // Convert to seconds
     timerRemaining = timerDuration;
     updateTimerDisplay();
-    
+
     // Set up playlist based on task type
-    switch(task.type) {
-        case 'workout': currentPlaylist = playlists.workout; break;
-        case 'creative': currentPlaylist = playlists.creative; break;
+    switch (task.type) {
+        case 'workout':
+            currentPlaylist = playlists.workout;
+            break;
+        case 'creative':
+            currentPlaylist = playlists.creative;
+            break;
+        case 'focus':
+            currentPlaylist = playlists.focus;
+            break;
         case 'learning':
-        case 'administrative': currentPlaylist = playlists.focus; break;
-        default: currentPlaylist = playlists.relax;
+            currentPlaylist = playlists.focus; // If you want a separate playlist, create playlists.learning
+            break;
+        case 'relax':
+            currentPlaylist = playlists.relax;
+            break;
+        default:
+            currentPlaylist = playlists.relax;
     }
-    
+
     playlistCover.textContent = currentPlaylist.cover;
     playlistTitle.textContent = currentPlaylist.title;
     playlistDescription.textContent = currentPlaylist.description;
-    
+
     currentTrackIndex = 0;
-    playTrack(currentTrackIndex);
-    
+    // Do NOT auto-play here
+    // playTrack(currentTrackIndex);
+
     // Show modal
     modal.style.display = 'flex';
 }
+
+// Only play/pause when play button is clicked
+playPauseBtn.onclick = function () {
+    if (!ytPlayer) return;
+    // If not playing, and video is loaded, just play
+    if (!isPlaying) {
+        // If player is at the right track, just play
+        if (ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PAUSED) {
+            ytPlayer.playVideo();
+            isPlaying = true;
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+            // Otherwise, load and play the track
+            playTrack(currentTrackIndex);
+        }
+    } else {
+        ytPlayer.pauseVideo();
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    }
+};
+
+// Pause music when modal is closed (task closed)
+closeModal.addEventListener('click', () => {
+    modal.style.display = 'none';
+    stopTimer();
+    if (ytPlayer && isPlaying) {
+        ytPlayer.pauseVideo();
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    }
+});
+
+// Also pause music if modal is closed by clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.style.display = 'none';
+        stopTimer();
+        if (ytPlayer && isPlaying) {
+            ytPlayer.pauseVideo();
+            isPlaying = false;
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        }
+    }
+});
 
 function updateTimerDisplay() {
     const minutes = Math.floor(timerRemaining / 60);
@@ -859,3 +917,32 @@ window.addEventListener('resize', () => {
         startWeatherAnimation();
     }
 });
+
+function renderCompletedTasks() {
+    const completedTaskList = document.getElementById('completed-task-list');
+    const completed = JSON.parse(localStorage.getItem('tempus_tasks_completed')) || [];
+    if (completed.length === 0) {
+        completedTaskList.innerHTML = '<div class="loading">No tasks completed yet.</div>';
+        return;
+    }
+    completedTaskList.innerHTML = '';
+    completed.forEach(task => {
+        const completedDate = new Date(task.completedAt || task.added);
+        const formattedDate = completedDate.toLocaleString();
+        const taskEl = document.createElement('div');
+        taskEl.className = 'completed-task-item';
+        taskEl.innerHTML = `
+            <div class="completed-task-title">
+                <i class="fas fa-check"></i> ${task.title}
+            </div>
+            <div class="completed-task-meta">
+                <span>Type: ${task.type}</span>
+                <span>Completed: ${formattedDate}</span>
+            </div>
+        `;
+        completedTaskList.appendChild(taskEl);
+    });
+}
+
+// Call this after rendering tasks
+renderCompletedTasks();
